@@ -1,0 +1,14 @@
+{
+  "recording_id": "bridge-shift-01",
+  "rows": [
+    {"name": "A", "value": 7},
+    {"name": "B", "value": 7},
+    {"name": "C", "value": 9}
+  ],
+  "edits": [
+    {"edit_id": "alpha-1", "parent": null, "start": 2, "delete_count": 0, "inserts": [{"name": "X", "value": 8}]},
+    {"edit_id": "beta", "parent": null, "start": 1, "delete_count": 1, "inserts": [{"name": "Y", "value": 6}]},
+    {"edit_id": "alpha-2", "parent": "alpha-1", "start": 2, "delete_count": 1, "inserts": [{"name": "Z", "value": 10}]}
+  ],
+  "delivery_orders": [["alpha-1", "alpha-2", "beta"], ["beta", "alpha-1", "alpha-2"]]
+}
