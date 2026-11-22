@@ -1,8 +1,7 @@
 from archive.dependencies import check_child_binding, resolve_parent
-from archive.merge import apply_current
+from archive.merge import check_author_evidence, merge_view
 from archive.publish import publish_edition
 from archive.storage import AdmissionReceipt, ArchiveStore
-from audit.ledger import load_ledger
 from errors import ConflictError, NotFoundError, ValidationError
 from exchange.codec import decode_package
 from identity import fingerprint, require_text
@@ -33,12 +32,9 @@ def admit(store: ArchiveStore, recording_id: str, wire: bytes) -> AdmissionRecei
         by_child = {item.manifest.child_id: item.manifest for item in accepted}
         check_child_binding(root.revision_id, manifest, by_child)
         lineage = resolve_parent(root.revision_id, manifest.parent_id, by_child)
-        current_id = store.load_current(recording_id)
-        ledger = load_ledger(store.connection, current_id)
-        if ledger is None:
-            raise NotFoundError(f'unknown edition: {current_id}')
-        current = tuple(row.occurrence for row in ledger)
-        rows = apply_current(recording.occurrences(), current, lineage, manifest)
+        check_author_evidence(root.revision_id, recording.occurrences(), lineage, manifest)
+        manifests = tuple(item.manifest for item in accepted) + (manifest,)
+        rows = merge_view(root.revision_id, recording.occurrences(), manifests)
         package_ids = [item.package_id for item in accepted]
         package_ids.append(package.package_id)
         edition_id = publish_edition(store, recording, package_ids, rows)

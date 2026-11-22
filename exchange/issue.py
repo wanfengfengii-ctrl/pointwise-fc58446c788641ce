@@ -9,7 +9,6 @@ from identity import require_text
 from revision.edits import load_amendment, work_number
 from revision.freeze import child_revision_number, load_frozen_revision
 from revision.ranges import checked_range
-from revision.views import load_current_working_view
 
 
 def issue(conn: sqlite3.Connection, edit_id: str, child_id: str) -> IssueReceipt:
@@ -35,13 +34,9 @@ def issue(conn: sqlite3.Connection, edit_id: str, child_id: str) -> IssueReceipt
             if previous.child_id != child_id:
                 raise ConflictError('issue receipt is bound to another frozen child')
             return previous
-        head = load_current_working_view(conn, child.recording_key)
-        basis = parent.rows
-        if head is not None and child_revision_number(head.work_id) != child_id:
-            basis = head.rows
-        start, end = checked_range(len(basis), amendment.start, amendment.delete_count)
-        deleted = tuple(row.evidence for row in basis[start:end])
-        anchor = basis[start - 1].evidence if start else None
+        start, end = checked_range(len(parent.rows), amendment.start, amendment.delete_count)
+        deleted = tuple(row.evidence for row in parent.rows[start:end])
+        anchor = parent.rows[start - 1].evidence if start else None
         manifest = build_manifest(child.recording_key, child_id, amendment, deleted, anchor)
         receipt = IssueReceipt(receipt_id, package_number(manifest), child_id, encode_package(manifest))
         record_issue(conn, child.recording_key, edit_id, receipt)

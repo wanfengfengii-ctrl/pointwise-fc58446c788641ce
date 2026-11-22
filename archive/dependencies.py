@@ -34,6 +34,32 @@ def resolve_parent(
     return AuthorLineage(tuple(reversed(ancestors)))
 
 
+def edit_levels(root_revision_id: str, manifests: tuple[Manifest, ...]) -> dict[str, int]:
+    by_child = {manifest.child_id: manifest for manifest in manifests}
+    levels: dict[str, int] = {}
+    for manifest in manifests:
+        chain = []
+        seen = set()
+        current = manifest
+        while current.edit_id not in levels:
+            if current.edit_id in seen:
+                raise ValidationError('cyclic author parent chain')
+            seen.add(current.edit_id)
+            chain.append(current)
+            if current.parent_id == root_revision_id:
+                levels[current.edit_id] = 0
+            else:
+                parent = by_child.get(current.parent_id)
+                if parent is None:
+                    raise MissingParentError(current.parent_id)
+                current = parent
+        level = levels[current.edit_id]
+        for item in reversed(chain):
+            level += 1
+            levels[item.edit_id] = level
+    return levels
+
+
 def check_child_binding(
     root_revision_id: str, manifest: Manifest, by_child: Mapping[str, Manifest],
 ) -> None:
